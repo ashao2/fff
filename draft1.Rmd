@@ -1,0 +1,101 @@
+---
+title: "fffdraft"
+output: html_document
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+by_program <- read_csv("/Users/allison/Desktop/FFF/bags_by_program.csv")
+by_date <- read_csv("/Users/allison/Desktop/FFF/bags_by_date.csv")
+by_date_and_program <- read_csv("/Users/allison/Desktop/FFF/bags_by_date_and_program.csv")
+by_date_and_program$month <- sub("/.*", "", by_date_and_program$date)
+by_date_and_program$month <- as.numeric(by_date_and_program$month)
+by_date_and_program$month <- month.abb[by_date_and_program$month]
+by_date_and_program$month = factor(by_date_and_program$month, 
+                                   levels = c("Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun"))
+by_date_and_program$program = factor(by_date_and_program$program,
+                                     levels = c("YMCA_PHA", "YMCA_SAC", "CCSC", "Banneker"))
+```
+
+## Plots
+
+```{r plot1, echo=FALSE, message=FALSE}
+per_month <- by_date_and_program %>%
+  group_by(month) %>%
+  summarise(month_tot = sum(bags))
+
+by_date_and_program %>%
+  group_by(month, program) %>%
+  summarize(total_bags = sum(bags)) %>%
+  ggplot(aes(x=month, y = total_bags, fill=program)) +
+  geom_col() +
+  scale_fill_manual(labels = c("YMCA@PHA", "Somerville YMCA", "CCSC", "Banneker"), values=c("#F16A70", "#B1D877", "#8CDCDA", "#4D4D4D")) +
+  ylab("Bags Delivered") +
+  xlab("Month") +
+  ggtitle("Bags Delivered per Month during 2020-21 Academic Year") +
+  labs(fill = "Program") +
+  annotate("text", x = 1, y = pull(per_month[1,2])+15, label = per_month[1,2], size=3) +
+  annotate("text", x = 2, y = pull(per_month[2,2])+15, label = per_month[2,2], size=3) +
+  annotate("text", x = 3, y = pull(per_month[3,2])+15, label = per_month[3,2], size=3) +
+  annotate("text", x = 4, y = pull(per_month[4,2])+15, label = per_month[4,2], size=3) +
+  annotate("text", x = 5, y = pull(per_month[5,2])+15, label = per_month[5,2], size=3) +
+  annotate("text", x = 6, y = pull(per_month[6,2])+15, label = per_month[6,2], size=3) +
+  annotate("text", x = 7, y = pull(per_month[7,2])+15, label = per_month[7,2], size=3) +
+  annotate("text", x = 8, y = pull(per_month[8,2])+15, label = per_month[8,2], size=3) +
+  annotate("text", x = 9, y = pull(per_month[9,2])+15, label = per_month[9,2], size=3)
+```
+
+```{r plot2, echo=FALSE}
+by_date_and_program %>%
+  group_by(month) %>%
+  summarize(total_bags = sum(bags)) %>%
+  ggplot(aes(x = month, y = cumsum(total_bags), group=1)) + 
+  geom_step() + geom_point() +
+  ylab("Bags Delivered (cumulative)") +
+  xlab("Month") +
+  ggtitle("Bags Delivered throughout Academic Year")
+```
+
+```{r plot3, echo=FALSE}
+by_date_and_program %>%
+  group_by(program) %>%
+  summarize(total_bags = sum(bags)) %>%
+  ggplot(aes(x = program, y = total_bags, fill = program)) +
+  geom_col() + 
+  geom_text(aes(label = total_bags), nudge_y = 40) +
+  scale_fill_manual(labels = c("YMCA@PHA", "Somerville YMCA", "CCSC", "Banneker"), values=c("#F16A70", "#B1D877", "#8CDCDA", "#4D4D4D")) + 
+  scale_x_discrete(labels = c("YMCA@PHA", "Somerville YMCA", "CCSC", "Banneker"))
+```
+
+```{r plot4, echo=FALSE}
+pie_data <- by_date_and_program %>%
+  group_by(program) %>%
+  summarize(total_bags = sum(bags))
+
+pie_data <- pie_data %>% 
+  arrange(desc(program)) %>%
+  mutate(prop = total_bags / sum(pie_data$total_bags) *100) %>%
+  mutate(ypos = cumsum(prop)- 0.5*prop )
+
+pie_data %>%
+  ggplot(aes(x="", y=prop, fill=program)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) +
+  theme_void() +
+  geom_text(aes(y = ypos, label = total_bags), color = "white", size=4) +
+  scale_fill_manual(labels = c("YMCA@PHA", "Somerville YMCA", "CCSC", "Banneker"), values=c("#F16A70", "#B1D877", "#8CDCDA", "#4D4D4D")) +
+  labs(fill = "Program") +
+  ggtitle("Bags Delivered per Program during 2020-21 Academic Year")
+```
+
+```{r plot5, echo=FALSE}
+by_date_and_program %>%
+  group_by(program) %>%
+  summarize(total_bags = sum(bags)) %>%
+  pull() %>%
+  pie(labels = c("YMCA@PHA", "Somerville YMCA", "CCSC", "Banneker"),
+      init.angle = 90,
+      border = "white",
+      col = c("#F16A70", "#B1D877", "#8CDCDA", "#4D4D4D"))
+```
